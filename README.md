@@ -2,7 +2,7 @@
 
 # Job Search
 
-A Hybrid Retrieval System that matches job postings to candidates, based on their professional summaries. A demo video is available at: https://youtu.be/Yd3ZKBL8A7I.
+A Hybrid Retrieval System that matches job postings to candidates, based on their professional summaries. A demo video is available [here](https://youtu.be/f2V7B0KeHGs).
 
 ## Dataset
 LinkedIn Job Postings Dataset [https://www.kaggle.com/datasets/arshkon/linkedin-job-postings] using the following code to scrape live LinkedIn data: https://github.com/ArshKA/LinkedIn-Job-Scraper
@@ -88,4 +88,8 @@ an `entrypoint.sh` script to pull the required models inside the container. Howe
 
 Parts of this project would directly benefit from some functionality offered by DSPy, as follows:
 
-**Assertions**: When we are using LLM to extract data from a summary, we use multiple binary validations (whether the generation meets the spec), as found in `llm_utils.py:6-11`. This kind of functionality is where DSPy excels at, while simultaneously improving the prompt using `teleprompters`/`optimizers` based on advanced Bayesian-Optimization algorithms like MIPRO.
+**Assertions**: When we are using LLM to extract data from a summary, we use multiple binary validations (whether the generation meets the spec), as found in `llm_utils.py:6-11`. This kind of functionality is where DSPy excels, while simultaneously improving the prompt using `teleprompters`/`optimizers` based on advanced Bayesian-Optimization algorithms like MIPRO.
+
+## Data Flow sketch
+
+![Weaviate](https://github.com/suprateembanerjee/Job-Search/assets/26841866/360601e8-9e06-40d9-9959-eefc99d1d64f)
