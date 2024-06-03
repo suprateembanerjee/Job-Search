@@ -1,8 +1,11 @@
+# Author: Suprateem Banerjee [www.github.com/suprateembanerjee]
+
 import ollama
 import os
 import requests
 import json
 
+# Used to verify whether an LLM Generated JSON meets required specifications
 def verify_extraction(json_extraction):
 
 	if set(json_extraction.keys()) != set(["skills", "location", "role_type", "interested_roles", "industries", "remote", "team_fit"]):
@@ -13,7 +16,9 @@ def verify_extraction(json_extraction):
 
 	return True
 
+# Extracts information from a given summary using an LLM, into a JSON
 def extract_info(summary:str):
+
 	prompt_template = f'''
 	Given the following summary of a jobseeker: "{summary}" answer the following questions: 
 	1. Enlist the main skills of the jobseeker.
@@ -49,23 +54,3 @@ def extract_info(summary:str):
 	json_output['summary'] = summary
 
 	return json_output
-
-if __name__ == '__main__':
-	summary = '''
-	As a Machine Learning Engineer at Chegg, I apply my passion and expertise in Generative AI, 
-	Natural Language Processing, and Deep Learning to develop state-of-the-art AI applications that empower 
-	students and educators. I have built deep learning models for question answering, topic prediction, and 
-	author extraction, leveraging LLMs, CNNs, and traditional ML models. I am currently working on CheggMate, 
-	a revolutionary AI-powered study assistant that powers student learning experiences and helps them master 
-	any subject. I have a Master of Science in Computer Science, specializing in Artificial Intelligence, 
-	from Northeastern University, where I gained a solid foundation in Deep Learning, Machine Learning, Computer 
-	Vision, and Natural Language Processing. I also have 2.5 years of experience in Research and Applied AI in 
-	Healthcare, EdTech, and supply chain, working with fast-paced startups and prominent Big Tech corporations. 
-	I have strong skills in Python, C++, Java, R, SQL, Keras, PyTorch, Tensorflow, Flask, FastAPI, AWS, Azure, 
-	Docker, NATS, Git, Jira, and more. I am an avid learner, conscious of the latest trends in AI and technology, 
-	and I enjoy giving tech talks and sharing my insights with the community.
-	'''
-
-	extracted = extract_info(summary)
-	for key in extracted:
-		print(f'{key}: {extracted[key]}')

@@ -1,7 +1,10 @@
+# Author: Suprateem Banerjee [www.github.com/suprateembanerjee]
+
 from weaviate.util import generate_uuid5
 import weaviate.classes as wvc
 import json
 
+# Loads data into a Weaviate collection from a JSON source
 def load_data(collection,
 			  path:str='../data/jobs.json',
 			  num_docs:int=-1):
@@ -21,6 +24,7 @@ def load_data(collection,
 	        	properties=job, 
 	        	uuid=generate_uuid5(job))
 
+# Creates a Weaviate collection according to specification
 def create_collection(client, 
 					  collection_name:str='Jobs_Subset', 
 					  collection_desc:str='various job postings',

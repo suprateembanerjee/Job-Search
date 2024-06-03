@@ -1,3 +1,5 @@
+# Author: Suprateem Banerjee [www.github.com/suprateembanerjee]
+
 import streamlit as st
 import webbrowser as wb
 import weaviate
@@ -12,6 +14,9 @@ import json
 from weaviate_utils import load_data, create_collection
 from llm_utils import extract_info
 
+ss = st.session_state
+# Load data
+
 with open('../data/industries.pkl', 'rb') as f:
 	industries_data = pickle.load(f)
 
@@ -24,21 +29,28 @@ with open ('../data/abouts', 'rb') as file:
 with open ('../data/states.pkl', 'rb') as file:
 	states = pickle.load(file)
 
+
+# These maps help us update GUI elements
+
 role_type_map = {'Flexible': 0, 'Full-Time': 1, 'Part-Time': 2, 'Internship': 3}
 states = ['Flexible'] + states
 location_map = {state: i for i, state in enumerate(states)}
 remote_map = {'Flexible': 0, 'Remote': 1}
 
-if 'summary_index' not in st.session_state:
-	st.session_state.summary_index = -1
-if 'role_type_selection' not in st.session_state:
-	st.session_state.role_type_selection = 0
-if 'location_selection' not in st.session_state:
-	st.session_state.location_selection = 0
-if 'remote_selection' not in st.session_state:
-	st.session_state.remote_selection = 0
+# Set initial session state variables
+ss = st.session_state
 
-def retrieve_jobs(candidate_information:dict, reload_collection:bool=False, top_k=5):
+if 'summary_index' not in ss:
+	ss.summary_index = -1
+if 'role_type_selection' not in ss:
+	ss.role_type_selection = 0
+if 'location_selection' not in ss:
+	ss.location_selection = 0
+if 'remote_selection' not in ss:
+	ss.remote_selection = 0
+
+# Given a candidate information, retrieve top_k relevant roles
+def retrieve_jobs(candidate_information:dict, reload_collection:bool=False, top_k:int=5):
 
 	client = weaviate.connect_to_local(additional_config=wvc.init.AdditionalConfig(timeout=(60, 7500)))
 	collection_name = 'Jobs'
@@ -76,8 +88,9 @@ def retrieve_jobs(candidate_information:dict, reload_collection:bool=False, top_
 
 	return response.objects[:top_k]
 
+# Given a retrieved job, display it in GUI
 def show_result(job):
-	# output_box.markdown(f'---------------------------------------------------------------------')
+
 	html_str = f"""
 	<style>
 	p.a {{
@@ -93,85 +106,97 @@ def show_result(job):
 	output_box.markdown(f'Industry: {job.properties["industry"]}')
 	output_box.markdown(f'Score: {job.metadata.score:.3f}')
 
-
+# Callback function for Search Button
 def search_callback():
 
-	if st.session_state.summary == '':
+	# Case where user input text field is empty
+	if ss.summary == '':
 		return
 	
-	candidate_information = extract_info(st.session_state.summary)
-	candidate_information['interested_roles'] = st.session_state.roles
-	candidate_information['industries'] = st.session_state.industries
-	candidate_information['role_type'] = st.session_state.role_type
-	candidate_information['remote'] = st.session_state.remote
-	candidate_information['location'] = st.session_state.location  
-	jobs = retrieve_jobs(candidate_information, top_k=int(st.session_state.top_k))
-	st.session_state.results_index = 0
-	st.session_state.results = jobs
-	c3.markdown(f'Role {st.session_state.results_index + 1}/{st.session_state.top_k}')
+	# Extract information from user summary into a dictionary, update certain filters from GUI
+	candidate_information = extract_info(ss.summary)
+	candidate_information['interested_roles'] = ss.roles
+	candidate_information['industries'] = ss.industries
+	candidate_information['role_type'] = ss.role_type
+	candidate_information['remote'] = ss.remote
+	candidate_information['location'] = ss.location
 
-	job = jobs[st.session_state.results_index]
-	show_result(job)
+	# Retrieve relevant roles for the specific summary
+	jobs = retrieve_jobs(candidate_information, top_k=int(ss.top_k))
 
+	# Update GUI elements
+	ss.results_index = 0
+	ss.results = jobs
+	c3.markdown(f'Role {ss.results_index + 1}/{ss.top_k}')
+	# job = jobs[ss.results_index]
+	show_result(jobs[ss.results_index])
 
+# Callback function for Auto-Filter Button
 def autofilter_callback():
 
-	if st.session_state.summary == '':
+	# Case where user input text field is empty
+	if ss.summary == '':
 		return
 	
-	candidate_information = extract_info(st.session_state.summary)
+	# Extract information from user summary into a dictionary
+	candidate_information = extract_info(ss.summary)
 
+	# Find Intersection between inferred information and pre-defined elements
 	roles_inferred = [role for role in candidate_information['interested_roles'] if role in roles_data]
 	industries_inferred = [industry for industry in candidate_information['industries'] if industry in industries_data]
 
-	st.session_state.remote_selection = remote_map.get(candidate_information['remote'], 0)
-	st.session_state.location_selection = location_map.get(candidate_information['location'], 0)
-	st.session_state.role_type_selection = role_type_map.get(candidate_information['role_type'], 0)
-	st.session_state.roles = roles_inferred
-	st.session_state.industries = industries_inferred
+	ss.remote_selection = remote_map.get(candidate_information['remote'], 0)
+	ss.location_selection = location_map.get(candidate_information['location'], 0)
+	ss.role_type_selection = role_type_map.get(candidate_information['role_type'], 0)
+	ss.roles = roles_inferred
+	ss.industries = industries_inferred
 
 	output_box.markdown('**Inferred**')
 	if len(roles_inferred) > 0:
 		output_box.markdown(f'Roles: {", ".join(roles_inferred)}\n')
 	if len(industries_inferred) > 0:
 		output_box.markdown(f'Industries: {", ".join(industries_inferred)}\n')
-	output_box.markdown(f'Role Type: {st.session_state.role_type}\n')
-	output_box.markdown(f'Remote: {st.session_state.remote}\n')
-	output_box.markdown(f'Location: {st.session_state.location}\n')
+	output_box.markdown(f'Role Type: {ss.role_type}\n')
+	output_box.markdown(f'Remote: {ssremote}\n')
+	output_box.markdown(f'Location: {ss.location}\n')
 
+# Callback function for Previous Example Button
 def prev_example_callback():
-	st.session_state.summary_index = max(0, st.session_state.summary_index - 1)
-	st.session_state.summary = example_summaries[st.session_state.summary_index]
-	cu1.markdown(f'Document: {st.session_state.summary_index + 1} / {len(example_summaries)}')
+	ss.summary_index = max(0, ss.summary_index - 1)
+	ss.summary = example_summaries[ss.summary_index]
+	cu1.markdown(f'Document: {ss.summary_index + 1} / {len(example_summaries)}')
 
-
+# Callback function for Next Example Button
 def next_example_callback():
-	st.session_state.summary_index = min(len(example_summaries) - 1, st.session_state.summary_index + 1)
-	st.session_state.summary = example_summaries[st.session_state.summary_index]
-	cu1.markdown(f'Document: {st.session_state.summary_index + 1} / {len(example_summaries)}')
+	ss.summary_index = min(len(example_summaries) - 1, ss.summary_index + 1)
+	ss.summary = example_summaries[ss.summary_index]
+	cu1.markdown(f'Document: {ss.summary_index + 1} / {len(example_summaries)}')
 
+# Callback function for Previous Role Button
 def prev_role_callback():
-	if 'results' not in st.session_state:
+	if 'results' not in ss:
 		return
-	k = max(0, st.session_state.results_index - 1)
-	st.session_state.results_index = k
-	show_result(st.session_state.results[k])
-	c3.markdown(f'Role {st.session_state.results_index + 1}/{st.session_state.top_k}')
+	k = max(0, ss.results_index - 1)
+	ss.results_index = k
+	show_result(ss.results[k])
+	c3.markdown(f'Role {ss.results_index + 1}/{ss.top_k}')
 
-
+# Callback function for Next Example Button
 def next_role_callback():
-	if 'results' not in st.session_state:
+	if 'results' not in ss:
 		return
-	k = min(st.session_state.top_k - 1, st.session_state.results_index + 1)
-	st.session_state.results_index = k
-	show_result(st.session_state.results[k])
-	c3.markdown(f'Role {st.session_state.results_index + 1}/{st.session_state.top_k}')
+	k = min(ss.top_k - 1, ss.results_index + 1)
+	ss.results_index = k
+	show_result(ss.results[k])
+	c3.markdown(f'Role {ss.results_index + 1}/{ss.top_k}')
 
+# Callback function for Apply Button
 def apply_callback():
-	if 'results' not in st.session_state:
+	if 'results' not in ss:
 		return
+	wb.open_new_tab(ss.results[ss.results_index].properties['application_url'])
 
-	wb.open_new_tab(st.session_state.results[st.session_state.results_index].properties['application_url'])
+# Streamlit GUI elements
 
 body = st.container()
 body.title('Job Search')
@@ -186,9 +211,9 @@ sidebar = st.sidebar
 sidebar.title('Filters')
 roles = sidebar.multiselect(label='Roles', key='roles', options=roles_data)
 industries = sidebar.multiselect(label='Industries', key='industries', options=industries_data)
-remote = sidebar.selectbox(label='In-Person / Remote', key='remote', index=st.session_state.remote_selection, options=remote_map.keys())
-location = sidebar.selectbox(label='Location', key='location', index=max(0, st.session_state.location_selection - 1), options=location_map.keys())
-role_type = sidebar.selectbox(label='Role Type', key='role_type', index=st.session_state.role_type_selection, options=role_type_map.keys())
+remote = sidebar.selectbox(label='In-Person / Remote', key='remote', index=ss.remote_selection, options=remote_map.keys())
+location = sidebar.selectbox(label='Location', key='location', index=max(0, ss.location_selection - 1), options=location_map.keys())
+role_type = sidebar.selectbox(label='Role Type', key='role_type', index=ss.role_type_selection, options=role_type_map.keys())
 top_k = sidebar.selectbox(label='Role Count', key='top_k', index=4, options=list(range(1, 21)))
 
 summary = st.text_area('', height=500, key='summary')
