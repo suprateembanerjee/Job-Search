@@ -1,0 +1,50 @@
+---
+version: '3.4'
+services:
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: cr.weaviate.io/semitechnologies/weaviate:1.25.1
+    ports:
+    - 8080:8080
+    - 50051:50051
+    volumes:
+    - weaviate_data:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      COHERE_APIKEY: '6RrFZ7OPqmerDpUcDK32DwoZsNTAD4WWkxQJYZsa'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'text2vec-ollama'
+      ENABLE_MODULES: 'text2vec-ollama,generative-ollama,reranker-cohere'
+      CLUSTER_HOSTNAME: 'node1'
+    networks:
+      - weaviate-ollama
+  # ollama:
+  #   entrypoint: ["/usr/bin/bash", "/entrypoint.sh"]
+  #   image: ollama/ollama:latest
+  #   ports:
+  #     - 11434:11434
+  #   volumes:
+  #     - .:/code
+  #     - ./ollama/ollama:/root/.ollama
+  #     - ./entrypoint.sh:/entrypoint.sh
+  #   container_name: ollama
+  #   pull_policy: always
+  #   tty: true
+  #   restart: always
+  #   environment:
+  #     - OLLAMA_KEEP_ALIVE=24h
+  #     - OLLAMA_HOST=0.0.0.0
+  #   networks:
+  #     - weaviate-ollama
+volumes:
+  weaviate_data:
+networks:
+  weaviate-ollama:

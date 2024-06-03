@@ -1,0 +1,10 @@
+.DS_Store
+data/jobs.json
+data/postings.csv
+data/companies/
+data/jobs/
+data/mappings/
+res/
+ollama/
+__pycache__/
+src/__pycache__/
