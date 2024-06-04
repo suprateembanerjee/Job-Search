@@ -34,7 +34,7 @@ with open ('../data/states.pkl', 'rb') as file:
 
 role_type_map = {'Flexible': 0, 'Full-Time': 1, 'Part-Time': 2, 'Internship': 3}
 states = ['Flexible'] + states
-location_map = {state: i for i, state in enumerate(states)}
+location_map = {state: i - 1 for i, state in enumerate(states, start=0)}
 remote_map = {'Flexible': 0, 'Remote': 1}
 
 # Set initial session state variables
@@ -69,7 +69,17 @@ def retrieve_jobs(candidate_information:dict, reload_collection:bool=False, top_
 			force=0.5, 
 			concepts=roles)) if len(candidate_information['interested_roles']) > 0 else None
 
-	filters = wvc.query.Filter.by_property("industry").contains_any(industries) if len(candidate_information['industries']) > 0 else None
+	filters = []
+	if len(candidate_information['industries']) > 0:
+		filters.append(wvc.query.Filter.by_property("industry").contains_any(industries))
+	if ss.remote != 'Flexible':
+		filters.append(wvc.query.Filter.by_property('remote').equal(True))
+	if ss.role_type != 'Flexible':
+		filters.append(wvc.query.Filter.by_property('type').equal(ss.role_type))
+	if ss.location != 'Flexible':
+		filters.append(wvc.query.Filter.by_property('location').equal(ss.location))
+
+	filters = wvc.query.Filter.all_of(filters) if len(filters) > 0 else None
 
 	response = jobs_collection.query.hybrid(
 		query=query,
@@ -125,10 +135,14 @@ def search_callback():
 	jobs = retrieve_jobs(candidate_information, top_k=int(ss.top_k))
 
 	# Update GUI elements
+
+	if len(jobs) == 0:
+		output_box.markdown('No jobs found matching the criteria. Please try with different filters.')
+		return
+
 	ss.results_index = 0
 	ss.results = jobs
 	c3.markdown(f'Role {ss.results_index + 1}/{ss.top_k}')
-	# job = jobs[ss.results_index]
 	show_result(jobs[ss.results_index])
 
 # Callback function for Auto-Filter Button
@@ -157,7 +171,7 @@ def autofilter_callback():
 	if len(industries_inferred) > 0:
 		output_box.markdown(f'Industries: {", ".join(industries_inferred)}\n')
 	output_box.markdown(f'Role Type: {ss.role_type}\n')
-	output_box.markdown(f'Remote: {ssremote}\n')
+	output_box.markdown(f'Remote: {ss.remote}\n')
 	output_box.markdown(f'Location: {ss.location}\n')
 
 # Callback function for Previous Example Button
@@ -212,7 +226,7 @@ sidebar.title('Filters')
 roles = sidebar.multiselect(label='Roles', key='roles', options=roles_data)
 industries = sidebar.multiselect(label='Industries', key='industries', options=industries_data)
 remote = sidebar.selectbox(label='In-Person / Remote', key='remote', index=ss.remote_selection, options=remote_map.keys())
-location = sidebar.selectbox(label='Location', key='location', index=max(0, ss.location_selection - 1), options=location_map.keys())
+location = sidebar.selectbox(label='Location', key='location', index=ss.location_selection, options=location_map.keys())
 role_type = sidebar.selectbox(label='Role Type', key='role_type', index=ss.role_type_selection, options=role_type_map.keys())
 top_k = sidebar.selectbox(label='Role Count', key='top_k', index=4, options=list(range(1, 21)))
 
