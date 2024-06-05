@@ -30,7 +30,7 @@ with open ('../data/states.pkl', 'rb') as file:
 	states = pickle.load(file)
 
 
-# These maps help us update GUI elements
+# These maps help us update GUI selections automatically
 
 role_type_map = {'Flexible': 0, 'Full-Time': 1, 'Part-Time': 2, 'Internship': 3}
 states = ['Flexible'] + states
@@ -83,7 +83,7 @@ def retrieve_jobs(candidate_information:dict, reload_collection:bool=False, top_
 
 	response = jobs_collection.query.hybrid(
 		query=query,
-		query_properties=['description^2', 'skills', 'industry'],
+		query_properties=['description^2', 'skills', 'title'],
 		fusion_type=wvc.query.HybridFusion.RELATIVE_SCORE,
 		target_vector='description_vector',
 		filters=filters,
@@ -170,9 +170,9 @@ def autofilter_callback():
 		output_box.markdown(f'Roles: {", ".join(roles_inferred)}\n')
 	if len(industries_inferred) > 0:
 		output_box.markdown(f'Industries: {", ".join(industries_inferred)}\n')
-	output_box.markdown(f'Role Type: {ss.role_type}\n')
-	output_box.markdown(f'Remote: {ss.remote}\n')
-	output_box.markdown(f'Location: {ss.location}\n')
+	output_box.markdown(f'Role Type: {candidate_information["role_type"]}\n')
+	output_box.markdown(f'Remote: {candidate_information["remote"]}\n')
+	output_box.markdown(f'Location: {candidate_information["location"]}\n')
 
 # Callback function for Previous Example Button
 def prev_example_callback():
@@ -213,7 +213,7 @@ def apply_callback():
 # Streamlit GUI elements
 
 body = st.container()
-body.title('Job Search')
+body.title('Gig Match')
 cu1, _, cu2, cu3 = st.columns([8, 8, 6, 5])
 body.write('Tell us about you, and let us find you some relevant roles!')
 with cu2:
