@@ -1,5 +1,3 @@
-*Disclaimer: This project was conducted as part of an interview process with Weaviate, and as such, uses various Weaviate components alongside Ollama-based Vectorizer and Generator models, a Cohere cross-encoder, and a Streamlit application to implement the functionality.*
-
 # Gig Match
 
 A Hybrid Retrieval System that matches job postings to candidates, based on their professional summaries. A demo video is available [here](https://youtu.be/f2V7B0KeHGs).
