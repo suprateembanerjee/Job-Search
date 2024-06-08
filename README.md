@@ -43,35 +43,44 @@ This data is then stored in `extracted_summaries.json`.
 
 ## Semantic Similarity
 
+Three separate vector indices exist to map job summaries, role titles, and industry titles. The first is used to map roles with candidates' professional summaries, whereas the role and industry indices enable automatic filtering of roles.
 The similarity score between a job and a candidate's summary is evaluated through **Hybrid Semantic Similarity** before being passed into a **Re-Ranker**.
 
 ### Keyword Search
 
-In Weaviate the default keyword search algorithm is BM25F, which is the Best Match 25 algorithm along with weighted field scores. In this project, we put a higher weightage on `description` while also considering `skills` and `industry` for our keyword search.
+In Weaviate the default keyword search algorithm is BM25F, which is the Best Match 25 algorithm along with weighted field scores. In this project, a higher weightage is placed on `description` while also considering `skills` and `industry` for keyword search.
 
 ### Vector Search
 
-I used the `nomic-embed-text` model from Nomic AI as the vectorizer for the only named vector in our collection. Not only are the vectors much smaller in dimension than llama3 (which I also experimented with), but they also supposedly have the functionality to specify the embedding dimensions between 64 and 768. 
-Since I used *Binary Quantization*, I used the maximum embedding dimension, which is 768.
+The `nomic-embed-text` model from Nomic AI is used as the vectorizer for the only named vector in the jobs index. Not only are the vectors much smaller in dimension than llama3 (which was also experimented with), but they also supposedly have the functionality to specify the embedding dimensions between 64 and 768. 
+However, since the vectors are *Binary Quantization*, the maximum embedding dimension is selected, which is 768.
 
-For the Index, I chose HNSW, which has higher recall performance when dealing with a large volume of vectors (in our case, 87000). This seemed reasonable because this system is static, and new jobs won't be inserted daily. For a system such as this to be real-time, HNSW may be a sub-optimal choice as insertions in 
+HNSW Indexing is preferred due to its higher recall performance when dealing with a large volume of vectors (in our case, 87000). This seemed reasonable because this system is static, and new jobs won't be inserted daily. For a system such as this to be real-time, HNSW may be a sub-optimal choice as insertions in 
 Hierarchical Indexes are costly (the whole Index needs to be remade). In this case, I would prefer Flat Indexing with Binary Quantization instead, as BQ (especially when coupled with SIMD-compatible distance metrics) might offer fast enough performance to not require indexing.
 
-In this case, I used a SIMD-compatible distance metric, the L2 Distance. We could also go with Dynamic Indexing, in which case the Index would switch from Flat to HNSW, but since we already know the total count to be high (default switch is around 10000, while we have 87000 documents), HNSW made more sense.
+In this case, a SIMD-optimized distance metric, the L2 Distance, is used. Dynamic Indexing would have been an alternative, in which case the Index would switch from Flat to HNSW, but since we already know the total count to be high (default switch is around 10000, while we have 87000 documents), HNSW made more sense.
 
 ### Fusion
 Having experimented with `RANKED` and `RELATIVE` fusion methods, I chose to use `RELATIVE` for my project as it offered better results. I parameterized the fusion using `alpha=0.6` which offered the best performance for my Hybrid Search.
 
 ### Re-Ranker
 
-Before re-ranking, I used a vector alignment on my semantic search results using the candidate's `interested_roles`. At this stage, the retrieval would have fetched a maximum of 50 vectors, but usually less since I only fetched the first 4 groups (according to the score) using `auto_limit=4`.
+Before re-ranking, a vector alignment on the semantic search results is performed using the candidate's `interested_roles`. At this stage, the retrieval would have fetched a maximum of 50 vectors, but usually less since only the first 4 groups are fetched (according to the score) using `auto_limit=4`.
 
-Following that, I used a cross-encoder model by *Cohere* named `rerank-english-v3.0` to re-rank the <50 results based on the role's `description`. This early-interaction mechanism vastly improved the search results for the top 5 (or any number, between 1 and 20) highest-ranked roles for a candidate.
+Following that, a cross-encoder model by *Cohere* named `rerank-english-v3.0` is used to re-rank the <50 results based on the role's `description`. This early-interaction mechanism vastly improved the search results for the top 5 (or any number, between 1 and 20) highest-ranked roles for a candidate.
+
+## Auto-Filtering
+
+The query search space is constrained using filters. An automatic filtering mechanism is implemented by which the application can automatically infer filters such as industries, location, and role preferences based on the professional summary. 
+
+For this mechanism, the LLM is queried using a gated prompt mechanism which is validated using deterministic and subsequent LLM queries. Once an answer for one or more of the several questions about a user's profile passes a specification, they are excluded from subsequent LLM calls if the LLM is queried again to satisfy the unmet specifications. This expedites convergence of data extraction.
+
+This is intended to only behave as a good starting point, and the user is expected to customize them to their needs.
 
 ## User Interface
 
 The UI is built using `StreamLit`. It enables the user the input some text about themselves, as a professional summary, and auto-set the filters such as roles, industries, location, role type, and number of reranked results to fetch. Following this auto-inference or setting the filters manually (or not) the user may choose to perform the search.
-The results of this search is shown one by one using the `Previous Role` and `Next Role` buttons. The button beneath this output box enables the user to apply to a selected role.
+The results of this search are shown one by one using the `Previous Role` and `Next Role` buttons. The button beneath this output box enables the user to apply to a selected role.
 
 There are also some pre-defined examples, the same 27 professional summaries I used for examples. These can be accessed by the `Previous Example` and `Next Example` buttons on the top right, which will prefill the user input text box accordingly.
 
