@@ -15,6 +15,10 @@ from weaviate_utils import load_data, create_collection
 from llm_utils import extract_info
 
 ss = st.session_state
+
+# Connect to Weaviate
+client = weaviate.connect_to_local(additional_config=wvc.init.AdditionalConfig(timeout=(60, 7500)))
+
 # Load data
 
 with open('../data/industries.pkl', 'rb') as f:
@@ -52,7 +56,6 @@ if 'remote_selection' not in ss:
 # Given a candidate information, retrieve top_k relevant roles
 def retrieve_jobs(candidate_information:dict, reload_collection:bool=False, top_k:int=5):
 
-	client = weaviate.connect_to_local(additional_config=wvc.init.AdditionalConfig(timeout=(60, 7500)))
 	collection_name = 'Jobs'
 
 	if reload_collection or not client.collections.exists(collection_name):
@@ -155,9 +158,46 @@ def autofilter_callback():
 	# Extract information from user summary into a dictionary
 	candidate_information = extract_info(ss.summary)
 
-	# Find Intersection between inferred information and pre-defined elements
-	roles_inferred = [role for role in candidate_information['interested_roles'] if role in roles_data]
-	industries_inferred = [industry for industry in candidate_information['industries'] if industry in industries_data]
+	# Retrieve closest matching roles
+
+	roles_collection = client.collections.get('Roles')
+	industries_collection = client.collections.get('Industries')
+
+	matched_roles = []
+
+	for role in candidate_information['interested_roles']:
+
+		response = roles_collection.query.hybrid(
+			query=role,
+			query_properties=['role'],
+			fusion_type=wvc.query.HybridFusion.RELATIVE_SCORE,
+			target_vector='role_vector',
+			return_metadata=wvc.query.MetadataQuery(score=True),
+			alpha=0.4,
+			limit=2)
+
+		matched_roles += [role.properties['role'] for role in response.objects]
+
+	roles_inferred = [role for role in list(set(matched_roles)) if role in roles_data]
+
+	# Retrieve closest matching industries
+
+	matched_industries = []
+
+	for industry in candidate_information['industries']:
+
+		response = industries_collection.query.hybrid(
+			query=industry,
+			query_properties=['industry'],
+			fusion_type=wvc.query.HybridFusion.RELATIVE_SCORE,
+			target_vector='industry_vector',
+			return_metadata=wvc.query.MetadataQuery(score=True),
+			alpha=0.4,
+			limit=2)
+
+		matched_industries += [industry.properties['industry'] for industry in response.objects]
+	
+	industries_inferred = [industry for industry in list(set(matched_industries)) if industry in industries_data]
 
 	ss.remote_selection = remote_map.get(candidate_information['remote'], 0)
 	ss.location_selection = location_map.get(candidate_information['location'], 0)
