@@ -1,6 +1,6 @@
 # Gig Match
 
-A Hybrid Retrieval System that matches job postings to candidates, based on their professional summaries. A demo video is available [here](https://youtu.be/f2V7B0KeHGs).
+A Hybrid Retrieval System that matches job postings to candidates, based on their professional summaries. A demo video is available [here](https://youtu.be/IZwWkgoRHRI).
 
 ## Dataset
 LinkedIn Job Postings Dataset [https://www.kaggle.com/datasets/arshkon/linkedin-job-postings] using the following code to scrape live LinkedIn data: https://github.com/ArshKA/LinkedIn-Job-Scraper
