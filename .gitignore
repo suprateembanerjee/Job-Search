@@ -1,4 +1,5 @@
 .DS_Store
+.env
 data/jobs.json
 data/postings.csv
 data/companies/

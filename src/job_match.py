@@ -161,8 +161,6 @@ def autofilter_callback():
 	# Retrieve closest matching roles
 
 	roles_collection = client.collections.get('Roles')
-	industries_collection = client.collections.get('Industries')
-
 	matched_roles = []
 
 	for role in candidate_information['interested_roles']:
@@ -182,6 +180,7 @@ def autofilter_callback():
 
 	# Retrieve closest matching industries
 
+	industries_collection = client.collections.get('Industries')
 	matched_industries = []
 
 	for industry in candidate_information['industries']:
